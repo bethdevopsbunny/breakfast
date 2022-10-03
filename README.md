@@ -1,4 +1,5 @@
 # hcw - WIP
 Hash Crack Worker
 
-serverless hash crack worker. 
+dynamically update store of popular passwords hashed with popular hashes 
+gitkeep
