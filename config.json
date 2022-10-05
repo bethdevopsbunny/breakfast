@@ -1,0 +1,11 @@
+{
+  "wordlistrepos": [
+    {
+      "owner": "danielmiessler",
+      "repo" : "SecLists",
+      "includedfiles": [
+        "store/txt/1659433997000000-words/Passwords/500-worst-passwords.txt"
+      ]
+    }
+  ]
+}

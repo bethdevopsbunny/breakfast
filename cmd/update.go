@@ -4,11 +4,10 @@ import (
 	"archive/zip"
 	"bufio"
 	"compress/gzip"
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
+	"hcw/hashes"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -30,7 +29,9 @@ var updateCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		d, _ := getLatestReleaseData("danielmiessler", "SecLists")
+		config := retrieveConfig()
+
+		d, _ := getLatestReleaseData(config.Wordlistrepos[0].Owner, config.Wordlistrepos[0].Repo)
 
 		timee := d.PublishedAt.UnixMicro()
 		zipfilepath := fmt.Sprintf("store/zip/%d-words.zip", timee)
@@ -51,10 +52,12 @@ var updateCmd = &cobra.Command{
 
 		}
 
-		sa := ReadEachLine("store/txt/1659433997000000-words/Passwords/darkweb2017-top10000.txt")
+		for _, element := range config.Wordlistrepos[0].Includedfiles {
+			sa := ReadEachLine(element)
+			for _, element2 := range sa {
+				println(fmt.Sprintf("%s:%s", element2, hashes.SHA256(element2)))
+			}
 
-		for _, element := range sa {
-			println(fmt.Sprintf("%s:%s", element, GetMD5Hash(element)))
 		}
 
 	},
@@ -77,11 +80,6 @@ func ReadEachLine(filepath string) (fileLines []string) {
 	readFile.Close()
 
 	return fileLines
-}
-
-func GetMD5Hash(text string) string {
-	hash := md5.Sum([]byte(text))
-	return hex.EncodeToString(hash[:])
 }
 
 //gunzip added to unzip the kali wordlist containing rockyou
@@ -418,4 +416,34 @@ func getLatestReleaseAsset(owner string, repoName string, assetID int) (ReleaseA
 	}
 
 	return releaseAsset, nil
+}
+
+type Config struct {
+	Wordlistrepos []struct {
+		Owner         string   `json:"owner"`
+		Repo          string   `json:"repo"`
+		Includedfiles []string `json:"includedfiles"`
+	} `json:"wordlistrepos"`
+}
+
+func retrieveConfig() Config {
+
+	jsonFile, err := os.Open("config.json")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	defer jsonFile.Close()
+
+	c, err := ioutil.ReadAll(jsonFile)
+	if err != nil {
+
+	}
+
+	var config Config
+
+	json.Unmarshal(c, &config)
+
+	return config
+
 }
