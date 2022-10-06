@@ -1,4 +1,3 @@
-# hcw - WIP
-Hash Crack Worker
-
-dynamically update store of popular passwords hashed with popular hashes 
+# Breakfast - Hash Manager
+the best café for simple password hash lookup<br>
+dynamically updated store of popular passwords hashed with popular hashes 
