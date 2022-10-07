@@ -1,12 +1,20 @@
 {
-  "StoreItems": [
-    {
-      "type" : "",
-      "owner": "",
-      "repo" : "",
-      "dateadded" : "",
-      "filename": "",
-      "hash": ""
-    }
-  ]
+ "StoreItems": [
+  {
+   "type": "github",
+   "owner": "danielmiessler",
+   "repo": "SecLists",
+   "dateadded": 1659433997000000,
+   "filename": "nothing yet",
+   "hash": "001ca34ead5bfa8e1366d468d6e2d6dce607fad0"
+  },
+  {
+   "type": "github",
+   "owner": "danielmiessler",
+   "repo": "SecLists",
+   "dateadded": 1659433997000000,
+   "filename": "nothing yet",
+   "hash": "001ca34ead5bfa8e1366d468d6e2d6dce607fad0"
+  }
+ ]
 }

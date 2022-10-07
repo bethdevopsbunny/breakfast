@@ -1,7 +1,7 @@
 {
   "wordlists": [
     {
-      "type" : "gihub",
+      "type" : "github",
       "owner": "danielmiessler",
       "repo" : "SecLists",
       "includedfiles": [

@@ -1,4 +1,4 @@
-package general
+package source
 
 import (
 	"archive/zip"

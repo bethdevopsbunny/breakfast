@@ -6,8 +6,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"hcw/hashes"
-	intfgeneral "hcw/intf/general"
-	intfgithub "hcw/intf/github"
+	github "hcw/source/github"
 	"io/ioutil"
 	"os"
 )
@@ -35,41 +34,46 @@ var updateCmd = &cobra.Command{
 
 			if element.Type == "github" {
 
-				data, _ := intfgithub.GetLatestReleaseData(element.Owner, element.Repo)
+				data, _ := github.GetLatestReleaseData(element.Owner, element.Repo)
 				published := data.PublishedAt.UnixMicro()
 
-				s := retrieveStoreConfig()
-				isItInStore(s, element)
+				createStoreItemHash(element)
+				store := retrieveStoreConfig()
+				addToStore(store, element, published, createStoreItemHash(element))
 
-				zipfilepath := fmt.Sprintf("store/zip/%s-%s-%s-%d.zip", element.Type, element.Owner, element.Repo, published)
+				println(isItInStore(store, element))
 
-				if _, err := os.Stat(zipfilepath); err == nil {
-
-					println("Already Uptodate")
-
-				} else {
-
-					intfgithub.DownloadFile(zipfilepath, data.ZipballURL)
-
-					txtfilepath := fmt.Sprintf("store/txt/%d-words", zipfilepath)
-					zipRoot := intfgeneral.Unzip(zipfilepath, "store/txt")
-					zipRootPath := fmt.Sprintf("store/txt/%s", zipRoot)
-					os.Rename(zipRootPath, txtfilepath)
-					println("completed")
-
-				}
+				//
+				//zipfilepath := fmt.Sprintf("store/zip/%s-%s-%s-%d.zip", element.Type, element.Owner, element.Repo, published)
+				//
+				//if _, err := os.Stat(zipfilepath); err == nil {
+				//
+				//	println("Already Uptodate")
+				//
+				//} else {
+				//
+				//	github.DownloadFile(zipfilepath, data.ZipballURL)
+				//
+				//	//
+				//	//txtfilepath := fmt.Sprintf("store/txt/%d-words", zipfilepath)
+				//	//zipRoot := source.Unzip(zipfilepath, "store/txt")
+				//	//zipRootPath := fmt.Sprintf("store/txt/%s", zipRoot)
+				//	//os.Rename(zipRootPath, txtfilepath)
+				//	//println("completed")
+				//
+				//}
 
 			}
 
 		}
 
-		for _, element := range config.Wordlistrepos[0].Includedfiles {
-			sa := ReadEachLine(element)
-			for _, element2 := range sa {
-				println(fmt.Sprintf("%s:%s", element2, hashes.SHA256(element2)))
-			}
-
-		}
+		//for _, element := range config.Wordlistrepos[0].Includedfiles {
+		//	sa := ReadEachLine(element)
+		//	for _, element2 := range sa {
+		//		println(fmt.Sprintf("%s:%s", element2, hashes.SHA256(element2)))
+		//	}
+		//
+		//}
 
 	},
 }
@@ -134,7 +138,7 @@ type StoreItem struct {
 	Type      string `json:"type"`
 	Owner     string `json:"owner"`
 	Repo      string `json:"repo"`
-	Dateadded string `json:"dateadded"`
+	Dateadded int64  `json:"dateadded"`
 	Filename  string `json:"filename"`
 	Hash      string `json:"hash"`
 }
@@ -165,10 +169,35 @@ func isItInStore(storeConfig StoreConfig, wordlist Wordlist) (isIt bool) {
 
 	for _, element := range storeConfig.StoreItems {
 
-		if element.Hash == wordlist.hash {
+		if element.Hash == createStoreItemHash(wordlist) {
 
+			isIt = true
 		}
 
 	}
+	return isIt
+
+}
+
+func createStoreItemHash(wordlist Wordlist) string {
+	wordliststring := fmt.Sprintf("%s%s%s", wordlist.Type, wordlist.Owner, wordlist.Repo)
+	return hashes.SHA1(wordliststring)
+
+}
+
+func addToStore(storeConfig StoreConfig, wordlist Wordlist, published int64, storeItemHash string) {
+
+	storeConfig.StoreItems = append(storeConfig.StoreItems, StoreItem{
+		Type:      wordlist.Type,
+		Owner:     wordlist.Owner,
+		Repo:      wordlist.Repo,
+		Dateadded: published,
+		Filename:  "nothing yet",
+		Hash:      storeItemHash,
+	})
+
+	file, _ := json.MarshalIndent(storeConfig, "", " ")
+
+	_ = ioutil.WriteFile("store/storeconfig.json", file, 0644)
 
 }
