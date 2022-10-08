@@ -5,7 +5,7 @@
       "owner": "danielmiessler",
       "repo" : "SecLists",
       "includedfiles": [
-        "store/txt/1659433997000000-words/Passwords/500-worst-passwords.txt"
+        "store/txt/1659433997000000-words/Passwords/200-worst-passwords.txt"
       ]
     }
   ]

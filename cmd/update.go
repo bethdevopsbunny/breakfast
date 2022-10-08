@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"bufio"
+	"crypto"
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
-	"hcw/hashes"
 	github "hcw/source/github"
 	"io/ioutil"
 	"os"
+	"reflect"
 )
 
 func init() {
@@ -30,18 +31,41 @@ var updateCmd = &cobra.Command{
 
 		config := retrieveConfig()
 
-		for _, element := range config.Wordlists {
+		for _, wordlist := range config.Wordlists {
 
-			if element.Type == "github" {
+			if wordlist.Type == "github" {
 
-				data, _ := github.GetLatestReleaseData(element.Owner, element.Repo)
+				data, _ := github.GetLatestReleaseData(wordlist.Owner, wordlist.Repo)
 				published := data.PublishedAt.UnixMicro()
-
-				createStoreItemHash(element)
 				store := retrieveStoreConfig()
-				addToStore(store, element, published, createStoreItemHash(element))
 
-				println(isItInStore(store, element))
+				storeCheck := false
+				for i, storeItem := range store.StoreItems {
+
+					if isItInStore(storeItem, storeItem.Type, storeItem.Owner, storeItem.Repo) {
+
+						storeCheck = true
+
+						if !isWordListsUpToDate(storeItem, wordlist) {
+
+							store.StoreItems[i].Includedfiles = wordlist.Includedfiles
+							updateStore(store)
+						}
+
+					}
+
+				}
+
+				if !storeCheck {
+					fullHash := fmt.Sprintf("%x", Hash(wordlist))
+					sourceHash := fmt.Sprintf("%x", Hash(wordlist.Type, wordlist.Owner, wordlist.Repo))
+					wordlistHash := fmt.Sprintf("%x", Hash(wordlist.Includedfiles))
+
+					addToStore(store, wordlist, published, StoreHashes{fullHash, sourceHash, wordlistHash})
+
+				}
+
+				// does the source exist
 
 				//
 				//zipfilepath := fmt.Sprintf("store/zip/%s-%s-%s-%d.zip", element.Type, element.Owner, element.Repo, published)
@@ -135,17 +159,23 @@ type StoreConfig struct {
 }
 
 type StoreItem struct {
-	Type      string `json:"type"`
-	Owner     string `json:"owner"`
-	Repo      string `json:"repo"`
-	Dateadded int64  `json:"dateadded"`
-	Filename  string `json:"filename"`
-	Hash      string `json:"hash"`
+	Type          string      `json:"type"`
+	Owner         string      `json:"owner"`
+	Repo          string      `json:"repo"`
+	Dateadded     int64       `json:"dateadded"`
+	Includedfiles []string    `json:"includedfiles"`
+	StoreHashes   StoreHashes `json:"storeHashes"`
+}
+
+type StoreHashes struct {
+	Full     string `json:"full"`
+	Source   string `json:"source"`
+	WordList string `json:"wordlist"`
 }
 
 func retrieveStoreConfig() StoreConfig {
 
-	jsonFile, err := os.Open("store/storeconfig.json")
+	jsonFile, err := os.Open("store/store.json")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -165,39 +195,58 @@ func retrieveStoreConfig() StoreConfig {
 
 }
 
-func isItInStore(storeConfig StoreConfig, wordlist Wordlist) (isIt bool) {
+func isItInStore(storeItem StoreItem, Type string, Owner string, Repo string) (isIt bool) {
 
-	for _, element := range storeConfig.StoreItems {
-
-		if element.Hash == createStoreItemHash(wordlist) {
-
-			isIt = true
-		}
-
+	if storeItem.StoreHashes.Source == fmt.Sprintf("%x", Hash(Type, Owner, Repo)) {
+		isIt = true
 	}
+
 	return isIt
 
 }
 
-func createStoreItemHash(wordlist Wordlist) string {
-	wordliststring := fmt.Sprintf("%s%s%s", wordlist.Type, wordlist.Owner, wordlist.Repo)
-	return hashes.SHA1(wordliststring)
+func isWordListsUpToDate(storeItem StoreItem, wordlist Wordlist) (isIt bool) {
+
+	if storeItem.StoreHashes.WordList == fmt.Sprintf("%x", Hash(wordlist.Includedfiles)) {
+
+		println("Hashes match")
+		isIt = true
+
+	}
+
+	return isIt
 
 }
 
-func addToStore(storeConfig StoreConfig, wordlist Wordlist, published int64, storeItemHash string) {
+func Hash(objs ...interface{}) []byte {
+	digester := crypto.SHA1.New()
+	for _, ob := range objs {
+		fmt.Fprint(digester, reflect.TypeOf(ob))
+		fmt.Fprint(digester, ob)
+	}
+	return digester.Sum(nil)
+}
+
+func updateStore(newStore StoreConfig) {
+
+	file, _ := json.MarshalIndent(newStore, "", " ")
+	_ = ioutil.WriteFile("store/store.json", file, 0644)
+
+}
+
+func addToStore(storeConfig StoreConfig, wordlist Wordlist, published int64, hashes StoreHashes) {
 
 	storeConfig.StoreItems = append(storeConfig.StoreItems, StoreItem{
-		Type:      wordlist.Type,
-		Owner:     wordlist.Owner,
-		Repo:      wordlist.Repo,
-		Dateadded: published,
-		Filename:  "nothing yet",
-		Hash:      storeItemHash,
+		Type:          wordlist.Type,
+		Owner:         wordlist.Owner,
+		Repo:          wordlist.Repo,
+		Dateadded:     published,
+		Includedfiles: wordlist.Includedfiles,
+		StoreHashes:   StoreHashes{Full: hashes.Full, Source: hashes.Source, WordList: hashes.WordList},
 	})
 
 	file, _ := json.MarshalIndent(storeConfig, "", " ")
 
-	_ = ioutil.WriteFile("store/storeconfig.json", file, 0644)
+	_ = ioutil.WriteFile("store/store.json", file, 0644)
 
 }

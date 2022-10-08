@@ -1,0 +1,18 @@
+{
+ "StoreItems": [
+  {
+   "type": "github",
+   "owner": "danielmiessler",
+   "repo": "SecLists",
+   "dateadded": 1659433997000000,
+   "includedfiles": [
+    "store/txt/1659433997000000-words/Passwords/200-worst-passwords.txt"
+   ],
+   "storeHashes": {
+    "full": "bf1e60fd4b3c25f0ccf0a5576f53ad9299e90f50",
+    "source": "4a4a64292896f189ba986068c92d0212ef1a3602",
+    "wordlist": "b513cf0d6b57a9a08472514d69fc73fed813392c"
+   }
+  }
+ ]
+}
