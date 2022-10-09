@@ -1,4 +1,4 @@
-module hcw
+module breakfast
 
 go 1.18
 

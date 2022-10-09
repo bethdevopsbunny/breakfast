@@ -1,6 +1,6 @@
 package main
 
-import "hcw/cmd"
+import "breakfast/cmd"
 
 func main() {
 	cmd.Execute()

@@ -5,8 +5,8 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "hcw",
-	Short: "Hash Crack Worker",
+	Use:   "breakfast",
+	Short: "dynamically updated store of popular passwords hashed with popular hashes",
 	Long:  " ",
 }
 
