@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"breakfast/hashes"
+	"breakfast/source"
+	github "breakfast/source/github"
 	"bufio"
 	"crypto"
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
-	github "hcw/source/github"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -31,11 +33,11 @@ var updateCmd = &cobra.Command{
 
 		config := retrieveConfig()
 
-		for _, wordlist := range config.Wordlists {
+		for _, sourcePack := range config.SourcePacks {
 
-			if wordlist.Type == "github" {
+			if sourcePack.Type == "github" {
 
-				data, _ := github.GetLatestReleaseData(wordlist.Owner, wordlist.Repo)
+				data, _ := github.GetLatestReleaseData(sourcePack.Owner, sourcePack.Repo)
 				published := data.PublishedAt.UnixMicro()
 				store := retrieveStoreConfig()
 
@@ -46,24 +48,29 @@ var updateCmd = &cobra.Command{
 
 						storeCheck = true
 
-						if !isWordListsUpToDate(storeItem, wordlist) {
+						if !areSourcePackWordListsUptodate(storeItem, sourcePack) {
 
-							store.StoreItems[i].Includedfiles = wordlist.Includedfiles
-							updateStore(store)
+							updateSourcePackWordLists(store, i, sourcePack)
+							wordListHashUpdate(config, store)
+							// run wordlist hash update
+
 						}
-
 					}
-
 				}
 
 				if !storeCheck {
-					fullHash := fmt.Sprintf("%x", Hash(wordlist))
-					sourceHash := fmt.Sprintf("%x", Hash(wordlist.Type, wordlist.Owner, wordlist.Repo))
-					wordlistHash := fmt.Sprintf("%x", Hash(wordlist.Includedfiles))
+					fullHash := fmt.Sprintf("%x", Hash(sourcePack))
 
-					addToStore(store, wordlist, published, StoreHashes{fullHash, sourceHash, wordlistHash})
+					sourceHash := fmt.Sprintf("%x", Hash(sourcePack.Type, sourcePack.Owner, sourcePack.Repo))
+					includedFilesHash := fmt.Sprintf("%x", Hash(sourcePack.IncludedWordLists))
+
+					addToStore(store, sourcePack, published, StoreHashes{fullHash, sourceHash, includedFilesHash})
+
+					updateSourcePacks(sourcePack, data)
 
 				}
+
+				// do not run hash update
 
 				// does the source exist
 
@@ -76,22 +83,16 @@ var updateCmd = &cobra.Command{
 				//
 				//} else {
 				//
-				//	github.DownloadFile(zipfilepath, data.ZipballURL)
 				//
-				//	//
-				//	//txtfilepath := fmt.Sprintf("store/txt/%d-words", zipfilepath)
-				//	//zipRoot := source.Unzip(zipfilepath, "store/txt")
-				//	//zipRootPath := fmt.Sprintf("store/txt/%s", zipRoot)
-				//	//os.Rename(zipRootPath, txtfilepath)
-				//	//println("completed")
 				//
+
 				//}
 
 			}
 
 		}
 
-		//for _, element := range config.Wordlistrepos[0].Includedfiles {
+		//for _, element := range config.Wordlistrepos[0].includedWordLists {
 		//	sa := ReadEachLine(element)
 		//	for _, element2 := range sa {
 		//		println(fmt.Sprintf("%s:%s", element2, hashes.SHA256(element2)))
@@ -100,6 +101,108 @@ var updateCmd = &cobra.Command{
 		//}
 
 	},
+}
+
+func updateSourcePacks(pack SourcePack, data github.ReleaseData) {
+
+	filename := fmt.Sprintf("%s-%s-%s", pack.Type, pack.Owner, pack.Repo)
+	zipfilepath := fmt.Sprintf("store/zip/%s.zip", filename)
+	//github.DownloadFile(zipfilepath, data.ZipballURL)
+	txtfilepath := fmt.Sprintf("store/txt/%s", filename)
+	zipRoot := source.Unzip(zipfilepath, "store/txt")
+	zipRootPath := fmt.Sprintf("store/txt/%s", zipRoot)
+	os.Rename(zipRootPath, txtfilepath)
+	println("completed")
+
+}
+
+type OUT struct {
+	List []List `json:"list"`
+}
+type List struct {
+	Pass string `json:"pass"`
+	Hash string `json:"hash"`
+}
+
+func wordListHashUpdate(config Config, storeConfig StoreConfig) {
+
+	for _, e := range config.Global.EncryptionHashes {
+
+		if e == "SHA1" {
+
+			o := OUT{}
+
+			for _, i := range storeConfig.StoreItems {
+
+				for _, j := range i.IncludedWordLists {
+
+					sa := ReadEachLine(j)
+
+					for _, k := range sa {
+						o.List = append(o.List, List{Pass: k, Hash: hashes.SHA1(k)})
+						//println(fmt.Sprintf("%s:%s", k, hashes.SHA1(k)))
+					}
+
+				}
+				UpdateList(o, i, "SHA1")
+
+			}
+
+		}
+
+		if e == "SHA256" {
+
+			o := OUT{}
+
+			for _, i := range storeConfig.StoreItems {
+
+				for _, j := range i.IncludedWordLists {
+
+					sa := ReadEachLine(j)
+
+					for _, k := range sa {
+						o.List = append(o.List, List{Pass: k, Hash: hashes.SHA256(k)})
+						//println(fmt.Sprintf("%s:%s", k, hashes.SHA1(k)))
+					}
+
+				}
+				UpdateList(o, i, "SHA256")
+
+			}
+
+		}
+		if e == "MD5" {
+
+			o := OUT{}
+
+			for _, i := range storeConfig.StoreItems {
+
+				for _, j := range i.IncludedWordLists {
+
+					sa := ReadEachLine(j)
+
+					for _, k := range sa {
+						o.List = append(o.List, List{Pass: k, Hash: hashes.MD5Hash(k)})
+						//println(fmt.Sprintf("%s:%s", k, hashes.SHA1(k)))
+					}
+
+				}
+				UpdateList(o, i, "MD5")
+
+			}
+
+		}
+
+	}
+
+}
+
+func updateSourcePackWordLists(store StoreConfig, index int, sourcePack SourcePack) {
+
+	store.StoreItems[index].IncludedWordLists = sourcePack.IncludedWordLists
+	store.StoreItems[index].StoreHashes.IncludedWordLists = fmt.Sprintf("%x", Hash(sourcePack.IncludedWordLists))
+	UpdateStore(store)
+
 }
 
 func ReadEachLine(filepath string) (fileLines []string) {
@@ -122,14 +225,17 @@ func ReadEachLine(filepath string) (fileLines []string) {
 }
 
 type Config struct {
-	Wordlists []Wordlist `json:"wordlists"`
+	Global struct {
+		EncryptionHashes []string `json:"encryptionhashes"`
+	} `json:"global"`
+	SourcePacks []SourcePack `json:"sourcepacks"`
 }
 
-type Wordlist struct {
-	Type          string   `json:"type"`
-	Owner         string   `json:"owner"`
-	Repo          string   `json:"repo"`
-	Includedfiles []string `json:"includedfiles"`
+type SourcePack struct {
+	Type              string   `json:"type"`
+	Owner             string   `json:"owner"`
+	Repo              string   `json:"repo"`
+	IncludedWordLists []string `json:"includedwordlists"`
 }
 
 func retrieveConfig() Config {
@@ -159,18 +265,18 @@ type StoreConfig struct {
 }
 
 type StoreItem struct {
-	Type          string      `json:"type"`
-	Owner         string      `json:"owner"`
-	Repo          string      `json:"repo"`
-	Dateadded     int64       `json:"dateadded"`
-	Includedfiles []string    `json:"includedfiles"`
-	StoreHashes   StoreHashes `json:"storeHashes"`
+	Type              string      `json:"type"`
+	Owner             string      `json:"owner"`
+	Repo              string      `json:"repo"`
+	Dateadded         int64       `json:"dateadded"`
+	IncludedWordLists []string    `json:"includedWordLists"`
+	StoreHashes       StoreHashes `json:"storeHashes"`
 }
 
 type StoreHashes struct {
-	Full     string `json:"full"`
-	Source   string `json:"source"`
-	WordList string `json:"wordlist"`
+	Full              string `json:"full"`
+	Source            string `json:"source"`
+	IncludedWordLists string `json:"includedwordlists"`
 }
 
 func retrieveStoreConfig() StoreConfig {
@@ -205,9 +311,9 @@ func isItInStore(storeItem StoreItem, Type string, Owner string, Repo string) (i
 
 }
 
-func isWordListsUpToDate(storeItem StoreItem, wordlist Wordlist) (isIt bool) {
+func areSourcePackWordListsUptodate(storeItem StoreItem, sourcePack SourcePack) (isIt bool) {
 
-	if storeItem.StoreHashes.WordList == fmt.Sprintf("%x", Hash(wordlist.Includedfiles)) {
+	if storeItem.StoreHashes.IncludedWordLists == fmt.Sprintf("%x", Hash(sourcePack.IncludedWordLists)) {
 
 		println("Hashes match")
 		isIt = true
@@ -227,22 +333,31 @@ func Hash(objs ...interface{}) []byte {
 	return digester.Sum(nil)
 }
 
-func updateStore(newStore StoreConfig) {
+func UpdateStore(newStore StoreConfig) {
 
 	file, _ := json.MarshalIndent(newStore, "", " ")
 	_ = ioutil.WriteFile("store/store.json", file, 0644)
 
 }
 
-func addToStore(storeConfig StoreConfig, wordlist Wordlist, published int64, hashes StoreHashes) {
+func UpdateList(out OUT, storeItem StoreItem, hash string) {
+
+	filename := fmt.Sprintf("store/hash/%s-%s-%s-%s.json", storeItem.Type, storeItem.Owner, storeItem.Repo, hash)
+
+	file, _ := json.MarshalIndent(out, "", " ")
+	_ = ioutil.WriteFile(filename, file, 0644)
+
+}
+
+func addToStore(storeConfig StoreConfig, sourcePack SourcePack, published int64, hashes StoreHashes) {
 
 	storeConfig.StoreItems = append(storeConfig.StoreItems, StoreItem{
-		Type:          wordlist.Type,
-		Owner:         wordlist.Owner,
-		Repo:          wordlist.Repo,
-		Dateadded:     published,
-		Includedfiles: wordlist.Includedfiles,
-		StoreHashes:   StoreHashes{Full: hashes.Full, Source: hashes.Source, WordList: hashes.WordList},
+		Type:              sourcePack.Type,
+		Owner:             sourcePack.Owner,
+		Repo:              sourcePack.Repo,
+		Dateadded:         published,
+		IncludedWordLists: sourcePack.IncludedWordLists,
+		StoreHashes:       StoreHashes{Full: hashes.Full, Source: hashes.Source, IncludedWordLists: hashes.IncludedWordLists},
 	})
 
 	file, _ := json.MarshalIndent(storeConfig, "", " ")

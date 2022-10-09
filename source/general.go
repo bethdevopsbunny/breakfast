@@ -62,7 +62,7 @@ func Unzip(archiveFilePath string, destination string) (zipRoot string) {
 	//dynamically pulls the root file name to return for renaming
 	zipRoot = archive.Reader.File[0].FileHeader.Name
 
-	for _, f := range archive.File {
+	for i, f := range archive.File {
 		archiveFilePath := filepath.Join(destination, f.Name)
 		fmt.Println("unzipping file ", archiveFilePath)
 
@@ -96,6 +96,7 @@ func Unzip(archiveFilePath string, destination string) (zipRoot string) {
 
 		dstFile.Close()
 		fileInArchive.Close()
+		fmt.Sprintf("unzipped %d of %d", i, len(archive.File))
 	}
 	return zipRoot
 }
