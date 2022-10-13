@@ -6,13 +6,12 @@
    "repo": "SecLists",
    "dateadded": 1659433997000000,
    "includedWordLists": [
-    "store/txt/github-danielmiessler-SecLists/Passwords/500-worst-passwords.txt",
-    "store/txt/github-danielmiessler-SecLists/Passwords/darkweb2017-top1000.txt"
+    "store/txt/github-danielmiessler-SecLists/Passwords/500-worst-passwords.txt"
    ],
    "storeHashes": {
-    "full": "db2e419af134fb4eeac9fba0e0875b0c1678a184",
+    "full": "130a9b2ed99029d91f0abab5ae5054fd96734ac3",
     "source": "4a4a64292896f189ba986068c92d0212ef1a3602",
-    "includedwordlists": "f67526dee3a5ba5012ee6f9ef67ea20634630f61"
+    "includedwordlists": "24c2813a0bddc25f3bb3be41afadc49f70b9517e"
    }
   }
  ]

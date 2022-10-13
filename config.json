@@ -12,8 +12,7 @@
       "owner": "danielmiessler",
       "repo" : "SecLists",
       "includedwordlists": [
-        "store/txt/github-danielmiessler-SecLists/Passwords/500-worst-passwords.txt",
-        "store/txt/github-danielmiessler-SecLists/Passwords/darkweb2017-top1000.txt"
+        "store/txt/github-danielmiessler-SecLists/Passwords/500-worst-passwords.txt"
       ]
     }
   ]

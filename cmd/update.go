@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"strings"
 )
 
 func init() {
@@ -42,6 +43,7 @@ var updateCmd = &cobra.Command{
 				store := retrieveStoreConfig()
 
 				storeCheck := false
+
 				for i, storeItem := range store.StoreItems {
 
 					if isItInStore(storeItem, storeItem.Type, storeItem.Owner, storeItem.Repo) {
@@ -143,8 +145,9 @@ func wordListHashUpdate(config Config, storeConfig StoreConfig) {
 						//println(fmt.Sprintf("%s:%s", k, hashes.SHA1(k)))
 					}
 
+					UpdateList(o, i, j, "SHA1")
+
 				}
-				UpdateList(o, i, "SHA1")
 
 			}
 
@@ -164,9 +167,8 @@ func wordListHashUpdate(config Config, storeConfig StoreConfig) {
 						o.List = append(o.List, List{Pass: k, Hash: hashes.SHA256(k)})
 						//println(fmt.Sprintf("%s:%s", k, hashes.SHA1(k)))
 					}
-
+					UpdateList(o, i, j, "SHA256")
 				}
-				UpdateList(o, i, "SHA256")
 
 			}
 
@@ -185,9 +187,8 @@ func wordListHashUpdate(config Config, storeConfig StoreConfig) {
 						o.List = append(o.List, List{Pass: k, Hash: hashes.MD5Hash(k)})
 						//println(fmt.Sprintf("%s:%s", k, hashes.SHA1(k)))
 					}
-
+					UpdateList(o, i, j, "MD5")
 				}
-				UpdateList(o, i, "MD5")
 
 			}
 
@@ -340,9 +341,12 @@ func UpdateStore(newStore StoreConfig) {
 
 }
 
-func UpdateList(out OUT, storeItem StoreItem, hash string) {
+func UpdateList(out OUT, storeItem StoreItem, wordlistFilename string, hash string) {
 
-	filename := fmt.Sprintf("store/hash/%s-%s-%s-%s.json", storeItem.Type, storeItem.Owner, storeItem.Repo, hash)
+	s := strings.Split(wordlistFilename, "/")
+	a := s[len(s)-1]
+
+	filename := fmt.Sprintf("store/hash/%s-%s-%s-%s-%s.json", storeItem.Type, storeItem.Owner, storeItem.Repo, a, hash)
 
 	file, _ := json.MarshalIndent(out, "", " ")
 	_ = ioutil.WriteFile(filename, file, 0644)
