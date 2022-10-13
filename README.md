@@ -2,10 +2,6 @@
 the best café for simple password hash lookup<br>
 dynamically updated store of popular passwords hashed with popular hashes 
 
-
-i use github issues to remember ideas more then anything else 
-
-
 getting some serious clashing on names in this;<br>
 for reference;<br>
 <br>
