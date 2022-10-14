@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"crypto"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
 	"io/ioutil"
@@ -138,23 +139,39 @@ func wordListHashUpdate(hashtype string, storeConfig StoreConfig) {
 
 		for _, wordList := range storeItem.IncludedWordLists {
 
-			sa := ReadEachLine(wordList)
+			if fileExists(wordList) {
+				sa := ReadEachLine(wordList)
 
-			for _, k := range sa {
+				for _, k := range sa {
 
-				switch hashtype {
-				case "SHA1":
-					hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: k, Hash: hashes.SHA1(k)})
-				case "SHA256":
-					hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: k, Hash: hashes.SHA256(k)})
-				case "MD5":
-					hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: k, Hash: hashes.MD5Hash(k)})
+					switch hashtype {
+					case "SHA1":
+						hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: k, Hash: hashes.SHA1(k)})
+					case "SHA256":
+						hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: k, Hash: hashes.SHA256(k)})
+					case "MD5":
+						hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: k, Hash: hashes.MD5Hash(k)})
+					}
 				}
+				UpdateList(hashedPasswordItems, storeItem, wordList, hashtype)
 			}
-			UpdateList(hashedPasswordItems, storeItem, wordList, hashtype)
 		}
 	}
 
+}
+
+func fileExists(filePath string) bool {
+
+	if _, err := os.Stat(filePath); err == nil {
+		return true
+
+	} else if errors.Is(err, os.ErrNotExist) {
+		return false
+
+	} else {
+		//log error
+		return false
+	}
 }
 
 func updateSourcePackWordLists(store StoreConfig, index int, sourcePack SourcePack) {
