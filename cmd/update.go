@@ -53,7 +53,12 @@ var updateCmd = &cobra.Command{
 						if !areSourcePackWordListsUptodate(storeItem, sourcePack) {
 
 							updateSourcePackWordLists(store, i, sourcePack)
-							wordListHashUpdate(config, store)
+
+							for _, desiredHash := range config.Global.EncryptionHashes {
+
+								wordListHashUpdate(desiredHash, store)
+							}
+
 							// run wordlist hash update
 
 						}
@@ -118,79 +123,36 @@ func updateSourcePacks(pack SourcePack, data github.ReleaseData) {
 
 }
 
-type HashedPasswordList struct {
+type HashedPasswordItem struct {
 	Pass string `json:"pass"`
 	Hash string `json:"hash"`
 }
 
-func wordListHashUpdate(config Config, storeConfig StoreConfig) {
+func wordListHashUpdate(hashtype string, storeConfig StoreConfig) {
 
-	for _, e := range config.Global.EncryptionHashes {
+	// four for loops sucks. remove this then your remove them.
 
-		if e == "SHA1" {
+	var hashedPasswordItems []HashedPasswordItem
 
-			var o []HashedPasswordList
+	for _, storeItem := range storeConfig.StoreItems {
 
-			for _, i := range storeConfig.StoreItems {
+		for _, wordList := range storeItem.IncludedWordLists {
 
-				for _, j := range i.IncludedWordLists {
+			sa := ReadEachLine(wordList)
 
-					sa := ReadEachLine(j)
+			for _, k := range sa {
 
-					for _, k := range sa {
-						o = append(o, HashedPasswordList{Pass: k, Hash: hashes.SHA1(k)})
-						//println(fmt.Sprintf("%s:%s", k, hashes.SHA1(k)))
-					}
-
-					UpdateList(o, i, j, "SHA1")
-
+				switch hashtype {
+				case "SHA1":
+					hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: k, Hash: hashes.SHA1(k)})
+				case "SHA256":
+					hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: k, Hash: hashes.SHA256(k)})
+				case "MD5":
+					hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: k, Hash: hashes.MD5Hash(k)})
 				}
-
 			}
-
+			UpdateList(hashedPasswordItems, storeItem, wordList, hashtype)
 		}
-
-		if e == "SHA256" {
-
-			var o []HashedPasswordList
-
-			for _, i := range storeConfig.StoreItems {
-
-				for _, j := range i.IncludedWordLists {
-
-					sa := ReadEachLine(j)
-
-					for _, k := range sa {
-						o = append(o, HashedPasswordList{Pass: k, Hash: hashes.SHA256(k)})
-						//println(fmt.Sprintf("%s:%s", k, hashes.SHA1(k)))
-					}
-					UpdateList(o, i, j, "SHA256")
-				}
-
-			}
-
-		}
-		if e == "MD5" {
-
-			var o []HashedPasswordList
-
-			for _, i := range storeConfig.StoreItems {
-
-				for _, j := range i.IncludedWordLists {
-
-					sa := ReadEachLine(j)
-
-					for _, k := range sa {
-						o = append(o, HashedPasswordList{Pass: k, Hash: hashes.MD5Hash(k)})
-						//println(fmt.Sprintf("%s:%s", k, hashes.SHA1(k)))
-					}
-					UpdateList(o, i, j, "MD5")
-				}
-
-			}
-
-		}
-
 	}
 
 }
@@ -338,7 +300,7 @@ func UpdateStore(newStore StoreConfig) {
 
 }
 
-func UpdateList(out []HashedPasswordList, storeItem StoreItem, wordlistFilename string, hash string) {
+func UpdateList(out []HashedPasswordItem, storeItem StoreItem, wordlistFilename string, hash string) {
 
 	filename := fmt.Sprintf("store/hash/%s-%s-%s-%s-%s.json", storeItem.Type, storeItem.Owner, storeItem.Repo, filenameFromFilepath(wordlistFilename), hash)
 
