@@ -3,12 +3,15 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
 )
 
 func init() {
+	log.SetLevel(log.InfoLevel)
+	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 
 	rootCmd.AddCommand(searchCmd)
 }
@@ -19,11 +22,14 @@ var searchCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		item := retriveHashFile()
+		testFile := "store/hash/github-danielmiessler-SecLists-500-worst-passwords-MD5.json"
+		item := retriveHashFile(testFile)
 
 		for _, i := range item {
 			if i.Hash == args[0] {
+				log.Infof("File - %s", testFile)
 				println(i.Pass)
+
 			}
 
 		}
@@ -31,9 +37,9 @@ var searchCmd = &cobra.Command{
 	},
 }
 
-func retriveHashFile() []HashedPasswordItem {
+func retriveHashFile(filepath string) []HashedPasswordItem {
 
-	jsonFile, err := os.Open("store/hash/github-danielmiessler-SecLists-500-worst-passwords-MD5.json")
+	jsonFile, err := os.Open(filepath)
 	if err != nil {
 		fmt.Println(err)
 	}

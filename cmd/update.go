@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
@@ -17,6 +18,9 @@ import (
 )
 
 func init() {
+
+	log.SetLevel(log.InfoLevel)
+	log.SetFormatter(&log.TextFormatter{FullTimestamp: true})
 
 	rootCmd.AddCommand(updateCmd)
 }
@@ -39,7 +43,10 @@ var updateCmd = &cobra.Command{
 
 			if sourcePack.Type == "github" {
 
-				data, _ := github.GetLatestReleaseData(sourcePack.Owner, sourcePack.Repo)
+				data, err := github.GetLatestReleaseData(sourcePack.Owner, sourcePack.Repo)
+				if err != nil {
+					log.Errorf("Failed to connect to github %s repo %s", sourcePack.Owner, sourcePack.Repo)
+				}
 				published := data.PublishedAt.UnixMicro()
 				store := retrieveStoreConfig()
 
@@ -121,7 +128,7 @@ func updateSourcePacks(pack SourcePack, data github.ReleaseData) {
 	zipRoot := source.Unzip(zipfilepath, "store/txt")
 	zipRootPath := fmt.Sprintf("store/txt/%s", zipRoot)
 	os.Rename(zipRootPath, txtfilepath)
-	println("completed")
+	log.Infof("Complted")
 
 }
 
@@ -167,10 +174,10 @@ func fileExists(filePath string) bool {
 		return true
 
 	} else if errors.Is(err, os.ErrNotExist) {
+		log.Infof("unable to find file - %s", filePath)
 		return false
-
 	} else {
-		//log error
+		log.Errorf("corruption with file - %s", filePath)
 		return false
 	}
 }
