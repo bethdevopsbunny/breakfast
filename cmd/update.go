@@ -67,6 +67,7 @@ var updateCmd = &cobra.Command{
 				}
 
 				if !storeCheck {
+
 					fullHash := fmt.Sprintf("%x", Hash(sourcePack))
 
 					sourceHash := fmt.Sprintf("%x", Hash(sourcePack.Type, sourcePack.Owner, sourcePack.Repo))
@@ -140,17 +141,17 @@ func wordListHashUpdate(hashtype string, storeConfig StoreConfig) {
 		for _, wordList := range storeItem.IncludedWordLists {
 
 			if fileExists(wordList) {
-				sa := ReadEachLine(wordList)
+				passwords := ReadEachLine(wordList)
 
-				for _, k := range sa {
+				for _, password := range passwords {
 
 					switch hashtype {
 					case "SHA1":
-						hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: k, Hash: hashes.SHA1(k)})
+						hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: password, Hash: hashes.SHA1(password)})
 					case "SHA256":
-						hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: k, Hash: hashes.SHA256(k)})
+						hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: password, Hash: hashes.SHA256(password)})
 					case "MD5":
-						hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: k, Hash: hashes.MD5Hash(k)})
+						hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: password, Hash: hashes.MD5Hash(password)})
 					}
 				}
 				UpdateList(hashedPasswordItems, storeItem, wordList, hashtype)
