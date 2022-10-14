@@ -3,7 +3,7 @@ package cmd
 import (
 	"breakfast/hashes"
 	"breakfast/source"
-	github "breakfast/source/github"
+	"breakfast/source/github"
 	"bufio"
 	"crypto"
 	"encoding/json"
