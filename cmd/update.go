@@ -118,10 +118,7 @@ func updateSourcePacks(pack SourcePack, data github.ReleaseData) {
 
 }
 
-type OUT struct {
-	List []List `json:"list"`
-}
-type List struct {
+type HashedPasswordList struct {
 	Pass string `json:"pass"`
 	Hash string `json:"hash"`
 }
@@ -132,7 +129,7 @@ func wordListHashUpdate(config Config, storeConfig StoreConfig) {
 
 		if e == "SHA1" {
 
-			o := OUT{}
+			var o []HashedPasswordList
 
 			for _, i := range storeConfig.StoreItems {
 
@@ -141,7 +138,7 @@ func wordListHashUpdate(config Config, storeConfig StoreConfig) {
 					sa := ReadEachLine(j)
 
 					for _, k := range sa {
-						o.List = append(o.List, List{Pass: k, Hash: hashes.SHA1(k)})
+						o = append(o, HashedPasswordList{Pass: k, Hash: hashes.SHA1(k)})
 						//println(fmt.Sprintf("%s:%s", k, hashes.SHA1(k)))
 					}
 
@@ -155,7 +152,7 @@ func wordListHashUpdate(config Config, storeConfig StoreConfig) {
 
 		if e == "SHA256" {
 
-			o := OUT{}
+			var o []HashedPasswordList
 
 			for _, i := range storeConfig.StoreItems {
 
@@ -164,7 +161,7 @@ func wordListHashUpdate(config Config, storeConfig StoreConfig) {
 					sa := ReadEachLine(j)
 
 					for _, k := range sa {
-						o.List = append(o.List, List{Pass: k, Hash: hashes.SHA256(k)})
+						o = append(o, HashedPasswordList{Pass: k, Hash: hashes.SHA256(k)})
 						//println(fmt.Sprintf("%s:%s", k, hashes.SHA1(k)))
 					}
 					UpdateList(o, i, j, "SHA256")
@@ -175,7 +172,7 @@ func wordListHashUpdate(config Config, storeConfig StoreConfig) {
 		}
 		if e == "MD5" {
 
-			o := OUT{}
+			var o []HashedPasswordList
 
 			for _, i := range storeConfig.StoreItems {
 
@@ -184,7 +181,7 @@ func wordListHashUpdate(config Config, storeConfig StoreConfig) {
 					sa := ReadEachLine(j)
 
 					for _, k := range sa {
-						o.List = append(o.List, List{Pass: k, Hash: hashes.MD5Hash(k)})
+						o = append(o, HashedPasswordList{Pass: k, Hash: hashes.MD5Hash(k)})
 						//println(fmt.Sprintf("%s:%s", k, hashes.SHA1(k)))
 					}
 					UpdateList(o, i, j, "MD5")
@@ -341,7 +338,7 @@ func UpdateStore(newStore StoreConfig) {
 
 }
 
-func UpdateList(out OUT, storeItem StoreItem, wordlistFilename string, hash string) {
+func UpdateList(out []HashedPasswordList, storeItem StoreItem, wordlistFilename string, hash string) {
 
 	filename := fmt.Sprintf("store/hash/%s-%s-%s-%s-%s.json", storeItem.Type, storeItem.Owner, storeItem.Repo, filenameFromFilepath(wordlistFilename), hash)
 
