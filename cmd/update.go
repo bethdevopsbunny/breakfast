@@ -343,10 +343,7 @@ func UpdateStore(newStore StoreConfig) {
 
 func UpdateList(out OUT, storeItem StoreItem, wordlistFilename string, hash string) {
 
-	s := strings.Split(wordlistFilename, "/")
-	a := s[len(s)-1]
-
-	filename := fmt.Sprintf("store/hash/%s-%s-%s-%s-%s.json", storeItem.Type, storeItem.Owner, storeItem.Repo, a, hash)
+	filename := fmt.Sprintf("store/hash/%s-%s-%s-%s-%s.json", storeItem.Type, storeItem.Owner, storeItem.Repo, filenameFromFilepath(wordlistFilename), hash)
 
 	file, _ := json.MarshalIndent(out, "", " ")
 	_ = ioutil.WriteFile(filename, file, 0644)
@@ -368,4 +365,14 @@ func addToStore(storeConfig StoreConfig, sourcePack SourcePack, published int64,
 
 	_ = ioutil.WriteFile("store/store.json", file, 0644)
 
+}
+
+func filenameFromFilepath(filepath string) string {
+
+	split := strings.Split(filepath, "/")
+	single := split[len(split)-1]
+
+	singleSplit := strings.Split(single, ".")
+
+	return singleSplit[0]
 }
