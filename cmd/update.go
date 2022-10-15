@@ -4,8 +4,8 @@ import (
 	"breakfast/hashes"
 	"breakfast/source"
 	"breakfast/source/github"
+	"breakfast/store"
 	"bufio"
-	"crypto"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,7 +13,6 @@ import (
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"os"
-	"reflect"
 	"strings"
 )
 
@@ -48,23 +47,23 @@ var updateCmd = &cobra.Command{
 					log.Errorf("Failed to connect to github %s repo %s", sourcePack.Owner, sourcePack.Repo)
 				}
 				published := data.PublishedAt.UnixMicro()
-				store := retrieveStoreConfig()
+				storeConfig := store.RetrieveStoreConfig()
 
 				storeCheck := false
 
-				for i, storeItem := range store.StoreItems {
+				for i, storeItem := range storeConfig.StoreItems {
 
-					if isItInStore(storeItem, storeItem.Type, storeItem.Owner, storeItem.Repo) {
+					if store.IsItInStore(storeItem, storeItem.Type, storeItem.Owner, storeItem.Repo) {
 
 						storeCheck = true
 
 						if !areSourcePackWordListsUptodate(storeItem, sourcePack) {
 
-							updateSourcePackWordLists(store, i, sourcePack)
+							updateSourcePackWordLists(storeConfig, i, sourcePack)
 
 							for _, desiredHash := range config.Global.EncryptionHashes {
 
-								wordListHashUpdate(desiredHash, store)
+								wordListHashUpdate(desiredHash, storeConfig)
 							}
 
 							// run wordlist hash update
@@ -75,12 +74,12 @@ var updateCmd = &cobra.Command{
 
 				if !storeCheck {
 
-					fullHash := fmt.Sprintf("%x", Hash(sourcePack))
+					fullHash := fmt.Sprintf("%x", store.Hash(sourcePack))
 
-					sourceHash := fmt.Sprintf("%x", Hash(sourcePack.Type, sourcePack.Owner, sourcePack.Repo))
-					includedFilesHash := fmt.Sprintf("%x", Hash(sourcePack.IncludedWordLists))
+					sourceHash := fmt.Sprintf("%x", store.Hash(sourcePack.Type, sourcePack.Owner, sourcePack.Repo))
+					includedFilesHash := fmt.Sprintf("%x", store.Hash(sourcePack.IncludedWordLists))
 
-					addToStore(store, sourcePack, published, StoreHashes{fullHash, sourceHash, includedFilesHash})
+					store.AddToStore(storeConfig, sourcePack, published, store.StoreHashes{fullHash, sourceHash, includedFilesHash})
 
 					updateSourcePacks(sourcePack, data)
 
@@ -91,7 +90,7 @@ var updateCmd = &cobra.Command{
 				// does the source exist
 
 				//
-				//zipfilepath := fmt.Sprintf("store/zip/%s-%s-%s-%d.zip", element.Type, element.Owner, element.Repo, published)
+				//zipfilepath := fmt.Sprintf("storeConfig/zip/%s-%s-%s-%d.zip", element.Type, element.Owner, element.Repo, published)
 				//
 				//if _, err := os.Stat(zipfilepath); err == nil {
 				//
@@ -119,7 +118,7 @@ var updateCmd = &cobra.Command{
 	},
 }
 
-func updateSourcePacks(pack SourcePack, data github.ReleaseData) {
+func updateSourcePacks(pack source.SourcePack, data github.ReleaseData) {
 
 	filename := fmt.Sprintf("%s-%s-%s", pack.Type, pack.Owner, pack.Repo)
 	zipfilepath := fmt.Sprintf("store/zip/%s.zip", filename)
@@ -137,17 +136,16 @@ type HashedPasswordItem struct {
 	Hash string `json:"hash"`
 }
 
-func wordListHashUpdate(hashtype string, storeConfig StoreConfig) {
+func wordListHashUpdate(hashtype string, storeConfig store.StoreConfig) {
 
 	// four for loops sucks. remove this then your remove them.
-
-	var hashedPasswordItems []HashedPasswordItem
 
 	for _, storeItem := range storeConfig.StoreItems {
 
 		for _, wordList := range storeItem.IncludedWordLists {
 
 			if fileExists(wordList) {
+				var hashedPasswordItems []HashedPasswordItem
 				passwords := ReadEachLine(wordList)
 
 				for _, password := range passwords {
@@ -182,11 +180,11 @@ func fileExists(filePath string) bool {
 	}
 }
 
-func updateSourcePackWordLists(store StoreConfig, index int, sourcePack SourcePack) {
+func updateSourcePackWordLists(storeConfig store.StoreConfig, index int, sourcePack source.SourcePack) {
 
-	store.StoreItems[index].IncludedWordLists = sourcePack.IncludedWordLists
-	store.StoreItems[index].StoreHashes.IncludedWordLists = fmt.Sprintf("%x", Hash(sourcePack.IncludedWordLists))
-	UpdateStore(store)
+	storeConfig.StoreItems[index].IncludedWordLists = sourcePack.IncludedWordLists
+	storeConfig.StoreItems[index].StoreHashes.IncludedWordListItems = fmt.Sprintf("%x", store.Hash(sourcePack.IncludedWordLists))
+	store.UpdateStore(storeConfig)
 
 }
 
@@ -213,14 +211,7 @@ type Config struct {
 	Global struct {
 		EncryptionHashes []string `json:"encryptionhashes"`
 	} `json:"global"`
-	SourcePacks []SourcePack `json:"sourcepacks"`
-}
-
-type SourcePack struct {
-	Type              string   `json:"type"`
-	Owner             string   `json:"owner"`
-	Repo              string   `json:"repo"`
-	IncludedWordLists []string `json:"includedwordlists"`
+	SourcePacks []source.SourcePack `json:"sourcepacks"`
 }
 
 func retrieveConfig() Config {
@@ -245,60 +236,9 @@ func retrieveConfig() Config {
 
 }
 
-type StoreConfig struct {
-	StoreItems []StoreItem `json:"StoreItems"`
-}
+func areSourcePackWordListsUptodate(storeItem store.StoreItem, sourcePack source.SourcePack) (isIt bool) {
 
-type StoreItem struct {
-	Type              string      `json:"type"`
-	Owner             string      `json:"owner"`
-	Repo              string      `json:"repo"`
-	Dateadded         int64       `json:"dateadded"`
-	IncludedWordLists []string    `json:"includedWordLists"`
-	StoreHashes       StoreHashes `json:"storeHashes"`
-}
-
-type StoreHashes struct {
-	Full              string `json:"full"`
-	Source            string `json:"source"`
-	IncludedWordLists string `json:"includedwordlists"`
-}
-
-func retrieveStoreConfig() StoreConfig {
-
-	jsonFile, err := os.Open("store/store.json")
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	defer jsonFile.Close()
-
-	c, err := ioutil.ReadAll(jsonFile)
-	if err != nil {
-
-	}
-
-	var storeConfig StoreConfig
-
-	json.Unmarshal(c, &storeConfig)
-
-	return storeConfig
-
-}
-
-func isItInStore(storeItem StoreItem, Type string, Owner string, Repo string) (isIt bool) {
-
-	if storeItem.StoreHashes.Source == fmt.Sprintf("%x", Hash(Type, Owner, Repo)) {
-		isIt = true
-	}
-
-	return isIt
-
-}
-
-func areSourcePackWordListsUptodate(storeItem StoreItem, sourcePack SourcePack) (isIt bool) {
-
-	if storeItem.StoreHashes.IncludedWordLists == fmt.Sprintf("%x", Hash(sourcePack.IncludedWordLists)) {
+	if storeItem.StoreHashes.IncludedWordListItems == fmt.Sprintf("%x", store.Hash(sourcePack.IncludedWordLists)) {
 
 		println("Hashes match")
 		isIt = true
@@ -309,45 +249,18 @@ func areSourcePackWordListsUptodate(storeItem StoreItem, sourcePack SourcePack) 
 
 }
 
-func Hash(objs ...interface{}) []byte {
-	digester := crypto.SHA1.New()
-	for _, ob := range objs {
-		fmt.Fprint(digester, reflect.TypeOf(ob))
-		fmt.Fprint(digester, ob)
+func UpdateList(out []HashedPasswordItem, storeItem store.StoreItem, wordlistFilename string, hash string) {
+
+	filepath := fmt.Sprintf("store/hash/%s/%s/%s", storeItem.Type, storeItem.Owner, storeItem.Repo)
+	err := os.MkdirAll(filepath, os.ModePerm)
+	if err != nil {
+		log.Println(err)
 	}
-	return digester.Sum(nil)
-}
 
-func UpdateStore(newStore StoreConfig) {
-
-	file, _ := json.MarshalIndent(newStore, "", " ")
-	_ = ioutil.WriteFile("store/store.json", file, 0644)
-
-}
-
-func UpdateList(out []HashedPasswordItem, storeItem StoreItem, wordlistFilename string, hash string) {
-
-	filename := fmt.Sprintf("store/hash/%s-%s-%s-%s-%s.json", storeItem.Type, storeItem.Owner, storeItem.Repo, filenameFromFilepath(wordlistFilename), hash)
+	filename := fmt.Sprintf("%s/%s-%s.json", filepath, filenameFromFilepath(wordlistFilename), hash)
 
 	file, _ := json.MarshalIndent(out, "", " ")
 	_ = ioutil.WriteFile(filename, file, 0644)
-
-}
-
-func addToStore(storeConfig StoreConfig, sourcePack SourcePack, published int64, hashes StoreHashes) {
-
-	storeConfig.StoreItems = append(storeConfig.StoreItems, StoreItem{
-		Type:              sourcePack.Type,
-		Owner:             sourcePack.Owner,
-		Repo:              sourcePack.Repo,
-		Dateadded:         published,
-		IncludedWordLists: sourcePack.IncludedWordLists,
-		StoreHashes:       StoreHashes{Full: hashes.Full, Source: hashes.Source, IncludedWordLists: hashes.IncludedWordLists},
-	})
-
-	file, _ := json.MarshalIndent(storeConfig, "", " ")
-
-	_ = ioutil.WriteFile("store/store.json", file, 0644)
 
 }
 

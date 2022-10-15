@@ -15,7 +15,7 @@ var flushstoreCMD = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		UpdateStore(StoreConfig{StoreItems: []StoreItem{}})
+		//UpdateStore(StoreConfig{StoreItems: []StoreItem{}})
 
 	},
 }

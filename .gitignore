@@ -1,3 +1,4 @@
 store/*
 !store/README.md
+!store/store.go
 .idea

@@ -10,6 +10,13 @@ import (
 	"strings"
 )
 
+type SourcePack struct {
+	Type              string   `json:"type"`
+	Owner             string   `json:"owner"`
+	Repo              string   `json:"repo"`
+	IncludedWordLists []string `json:"includedwordlists"`
+}
+
 //Gunzip added to unzip the kali wordlist containing rockyou
 //not needed as it's included in seclists
 //	downloadFile("store/zip/wordlist.txt.gz", "https://gitlab.com/kalilinux/packages/wordlists/-/raw/kali/master/rockyou.txt.gz?inline=false")

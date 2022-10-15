@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"breakfast/store"
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
@@ -22,13 +23,28 @@ var searchCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		testFile := "store/hash/github-danielmiessler-SecLists-500-worst-passwords-MD5.json"
-		item := retriveHashFile(testFile)
+		storeConfig := store.RetrieveStoreConfig()
 
-		for _, i := range item {
-			if i.Hash == args[0] {
-				log.Infof("File - %s", testFile)
-				println(i.Pass)
+		for _, storeItem := range storeConfig.StoreItems {
+
+			filepath := fmt.Sprintf("store/hash/%s/%s/%s", storeItem.Type, storeItem.Owner, storeItem.Repo)
+
+			files, _ := ioutil.ReadDir(filepath)
+
+			for _, i := range files {
+
+				filel := fmt.Sprintf("%s/%s", filepath, i.Name())
+
+				item := retriveHashFile(filel)
+
+				for _, j := range item {
+					if j.Hash == args[0] {
+						log.Infof("File - %s", i.Name())
+						println(j.Pass)
+
+					}
+
+				}
 
 			}
 
@@ -56,5 +72,9 @@ func retriveHashFile(filepath string) []HashedPasswordItem {
 	json.Unmarshal(c, &hashedPasswordItem)
 
 	return hashedPasswordItem
+
+}
+
+func listHashStoreDirs(items []store.StoreItem) {
 
 }
