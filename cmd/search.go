@@ -29,23 +29,33 @@ var searchCmd = &cobra.Command{
 
 			filepath := fmt.Sprintf("store/hash/%s/%s/%s", storeItem.Type, storeItem.Owner, storeItem.Repo)
 
-			files, _ := ioutil.ReadDir(filepath)
+			// for each directory
+			// for each directory provided
 
-			for _, i := range files {
+			hashDirectories, _ := ioutil.ReadDir(filepath)
 
-				filel := fmt.Sprintf("%s/%s", filepath, i.Name())
+			for _, dir := range hashDirectories {
 
-				item := retriveHashFile(filel)
+				filepaths := fmt.Sprintf("%s/%s", filepath, dir.Name())
 
-				for _, j := range item {
-					if j.Hash == args[0] {
-						log.Infof("File - %s", i.Name())
-						println(j.Pass)
+				files, _ := ioutil.ReadDir(filepaths)
+
+				for _, i := range files {
+
+					filel := fmt.Sprintf("%s/%s", filepaths, i.Name())
+
+					item := retriveHashFile(filel)
+
+					for _, j := range item {
+						if j.Hash == args[0] {
+							log.Infof("File - %s", i.Name())
+							println(j.Pass)
+
+						}
 
 					}
 
 				}
-
 			}
 
 		}

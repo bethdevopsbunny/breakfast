@@ -3,7 +3,8 @@
     "encryptionhashes": [
       "SHA1",
       "SHA256",
-      "MD5"
+      "MD5",
+      "BCRYPT"
     ]
   },
   "sourcepacks": [
@@ -12,8 +13,9 @@
       "owner": "danielmiessler",
       "repo" : "SecLists",
       "includedwordlists": [
-        "store/txt/github-danielmiessler-SecLists/Passwords/500-worst-passwords.txt",
-        "store/txt/github-danielmiessler-SecLists/Passwords/darkweb2017-top10.txt"
+        "store/txt/github-danielmiessler-SecLists/Passwords/darkweb2017-top10.txt",
+        "store/txt/github-danielmiessler-SecLists/Passwords/twitter-banned.txt",
+        "store/txt/github-danielmiessler-SecLists/Passwords/darkweb2017-top100.txt"
       ]
     }
   ]

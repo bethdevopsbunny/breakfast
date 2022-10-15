@@ -31,11 +31,6 @@ var updateCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		// collect config
-		// check for changes to source
-		// pull down and prepare each new source.
-		// for each file stipulated in config hash with chosen hashes
-
 		config := retrieveConfig()
 
 		for _, sourcePack := range config.SourcePacks {
@@ -85,35 +80,9 @@ var updateCmd = &cobra.Command{
 
 				}
 
-				// do not run hash update
-
-				// does the source exist
-
-				//
-				//zipfilepath := fmt.Sprintf("storeConfig/zip/%s-%s-%s-%d.zip", element.Type, element.Owner, element.Repo, published)
-				//
-				//if _, err := os.Stat(zipfilepath); err == nil {
-				//
-				//	println("Already Uptodate")
-				//
-				//} else {
-				//
-				//
-				//
-
-				//}
-
 			}
 
 		}
-
-		//for _, element := range config.Wordlistrepos[0].includedWordLists {
-		//	sa := ReadEachLine(element)
-		//	for _, element2 := range sa {
-		//		println(fmt.Sprintf("%s:%s", element2, hashes.SHA256(element2)))
-		//	}
-		//
-		//}
 
 	},
 }
@@ -153,10 +122,16 @@ func wordListHashUpdate(hashtype string, storeConfig store.StoreConfig) {
 					switch hashtype {
 					case "SHA1":
 						hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: password, Hash: hashes.SHA1(password)})
+						log.Infof("SHA1 Hashing %s", password)
 					case "SHA256":
 						hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: password, Hash: hashes.SHA256(password)})
+						log.Infof("SHA256 Hashing %s", password)
 					case "MD5":
 						hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: password, Hash: hashes.MD5Hash(password)})
+						log.Infof("MD5 Hashing %s", password)
+					case "BCRYPT":
+						hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: password, Hash: hashes.BCRYPT(password)})
+						log.Infof("BCRYPT Hashing %s", password)
 					}
 				}
 				UpdateList(hashedPasswordItems, storeItem, wordList, hashtype)
@@ -251,13 +226,13 @@ func areSourcePackWordListsUptodate(storeItem store.StoreItem, sourcePack source
 
 func UpdateList(out []HashedPasswordItem, storeItem store.StoreItem, wordlistFilename string, hash string) {
 
-	filepath := fmt.Sprintf("store/hash/%s/%s/%s", storeItem.Type, storeItem.Owner, storeItem.Repo)
+	filepath := fmt.Sprintf("store/hash/%s/%s/%s/%s", storeItem.Type, storeItem.Owner, storeItem.Repo, hash)
 	err := os.MkdirAll(filepath, os.ModePerm)
 	if err != nil {
 		log.Println(err)
 	}
 
-	filename := fmt.Sprintf("%s/%s-%s.json", filepath, filenameFromFilepath(wordlistFilename), hash)
+	filename := fmt.Sprintf("%s/%s.json", filepath, filenameFromFilepath(wordlistFilename))
 
 	file, _ := json.MarshalIndent(out, "", " ")
 	_ = ioutil.WriteFile(filename, file, 0644)
