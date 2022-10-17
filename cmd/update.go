@@ -129,9 +129,6 @@ func wordListHashUpdate(hashtype string, storeConfig store.StoreConfig) {
 					case "MD5":
 						hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: password, Hash: hashes.MD5Hash(password)})
 						log.Infof("MD5 Hashing %s", password)
-					case "BCRYPT":
-						hashedPasswordItems = append(hashedPasswordItems, HashedPasswordItem{Pass: password, Hash: hashes.BCRYPT(password)})
-						log.Infof("BCRYPT Hashing %s", password)
 					}
 				}
 				UpdateList(hashedPasswordItems, storeItem, wordList, hashtype)
